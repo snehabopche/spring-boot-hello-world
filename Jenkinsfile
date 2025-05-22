@@ -1,26 +1,26 @@
-pipeline { 
+pipeline {
     agent any
 
     tools {
-        maven 'Maven3' // Defined in Jenkins Global Tool Config
-        jdk 'JDK17'    // Defined in Jenkins Global Tool Config
+        maven 'Maven3' // Must match the name in Jenkins Global Tool Configuration
+        jdk 'JDK17'    // Must match the name in Jenkins Global Tool Configuration
     }
 
     environment {
-        SONARQUBE = 'SonarQube'         // Name in Jenkins SonarQube config
-        ARTIFACTORY = 'JFrog'           // Name of JFrog server in Jenkins
-        S3_BUCKET = 'cicd-s3-bucket-code-deploy'      // Replace with your actual bucket name
+        SONARQUBE = 'SonarQube'       // Name in Jenkins SonarQube configuration
+        ARTIFACTORY = 'JFrog'         // Server ID of JFrog Artifactory in Jenkins
+        S3_BUCKET = 'cicd-s3-bucket-code-deploy' // Your actual S3 bucket name
         S3_KEY = 'spring-boot-hello-world.zip'
-        AWS_REGION = 'ca-central-1'        // Replace with your AWS region
+        AWS_REGION = 'ca-central-1'   // AWS region
     }
-stage('Clone') {
-    steps {
-        git branch: 'main', url: 'https://github.com/snehabopche/spring-boot-hello-world.git'
-    }
-}
 
+    stages {
+        stage('Clone') {
+            steps {
+                git branch: 'main', url: 'https://github.com/snehabopche/spring-boot-hello-world.git'
+            }
+        }
 
-   
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE}") {
@@ -79,4 +79,5 @@ stage('Clone') {
             }
         }
     }
+}
 
