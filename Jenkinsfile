@@ -39,18 +39,20 @@ pipeline {
         }
 
         stage('Publish to Artifactory') {
-            steps {
-                rtUpload(
-                    serverId: "${ARTIFACTORY}",
-                    spec: """{
-                        "files": [{
-                            "pattern": "target/*.jar",
-                            "target": "libs-release-local/springboot-hello-world/"
-                        }]
-                    }"""
-                )
-            }
+    steps {
+        script {
+            def server = Artifactory.server 'JFrog'
+            def uploadSpec = """{
+              "files": [{
+                "pattern": "target/*.jar",
+                "target": "libs-release-local/springboot-hello-world/"
+              }]
+            }"""
+            server.upload(uploadSpec)
         }
+    }
+}
+
 
         stage('Package for CodeDeploy') {
             steps {
