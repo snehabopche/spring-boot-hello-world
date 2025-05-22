@@ -64,24 +64,29 @@ pipeline {
             }
         }
 
+        stage('Upload to S3') {
+            steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS_Credentials']]) {
-    sh '''
-        aws s3 cp $S3_KEY s3://$S3_BUCKET/$S3_KEY --region $AWS_REGION
-    '''
-}
+                    sh '''
+                        aws s3 cp $S3_KEY s3://$S3_BUCKET/$S3_KEY --region $AWS_REGION
+                    '''
+                }
+            }
+        }
 
-
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS_Credentials']]) {
-    sh '''
-        aws deploy create-deployment \
-        --application-name MyApp \
-        --deployment-group-name MyDeploymentGroup \
-        --s3-location bucket=$S3_BUCKET,bundleType=zip,key=$S3_KEY \
-        --region $AWS_REGION
-    '''
-}
-
-
+        stage('Deploy to EC2 with CodeDeploy') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS_Credentials']]) {
+                    sh '''
+                        aws deploy create-deployment \
+                        --application-name MyApp \
+                        --deployment-group-name MyDeploymentGroup \
+                        --s3-location bucket=$S3_BUCKET,bundleType=zip,key=$S3_KEY \
+                        --region $AWS_REGION
+                    '''
+                }
+            }
+        }
     }
 }
 
