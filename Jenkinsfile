@@ -64,33 +64,23 @@ pipeline {
             }
         }
 
-                stage('Upload to S3') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'AWS_CREDENTIALS', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    sh '''
-                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        aws s3 cp $S3_KEY s3://$S3_BUCKET/$S3_KEY --region $AWS_REGION
-                    '''
-                }
-            }
-        }
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS_Credentials']]) {
+    sh '''
+        aws s3 cp $S3_KEY s3://$S3_BUCKET/$S3_KEY --region $AWS_REGION
+    '''
+}
 
-        stage('Deploy to EC2 with CodeDeploy') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'AWS_CREDENTIALS', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    sh '''
-                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        aws deploy create-deployment \
-                        --application-name MyApp \
-                        --deployment-group-name MyDeploymentGroup \
-                        --s3-location bucket=$S3_BUCKET,bundleType=zip,key=$S3_KEY \
-                        --region $AWS_REGION
-                    '''
-                }
-            }
-        }
+
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS_Credentials']]) {
+    sh '''
+        aws deploy create-deployment \
+        --application-name MyApp \
+        --deployment-group-name MyDeploymentGroup \
+        --s3-location bucket=$S3_BUCKET,bundleType=zip,key=$S3_KEY \
+        --region $AWS_REGION
+    '''
+}
+
 
     }
 }
