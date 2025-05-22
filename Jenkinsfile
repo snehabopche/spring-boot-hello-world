@@ -13,14 +13,14 @@ pipeline {
         S3_KEY = 'spring-boot-hello-world.zip'
         AWS_REGION = 'ca-central-1'        // Replace with your AWS region
     }
+stage('Clone') {
+    steps {
+        git branch: 'main', url: 'https://github.com/snehabopche/spring-boot-hello-world.git'
+    }
+}
 
-    stages {
-        stage('Clone') {
-            steps {
-                git 'https://github.com/snehabopche/spring-boot-hello-world.git'
-            }
-        }
 
+   
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE}") {
