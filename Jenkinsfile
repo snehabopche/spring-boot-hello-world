@@ -22,12 +22,15 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv("${SONARQUBE}") {
-                    sh 'mvn clean verify sonar:sonar'
-                }
+    steps {
+        withSonarQubeEnv("${SONARQUBE}") {
+            withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                sh 'mvn clean verify sonar:sonar -Dsonar.token=$SONAR_TOKEN'
             }
         }
+    }
+}
+
 
         stage('Build') {
             steps {
