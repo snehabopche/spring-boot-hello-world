@@ -2,16 +2,16 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven3' // Must match the name in Jenkins Global Tool Configuration
-        jdk 'JDK17'    // Must match the name in Jenkins Global Tool Configuration
+        maven 'Maven3'
+        jdk 'JDK17'
     }
 
     environment {
-        SONARQUBE = 'SonarQube'       // Name in Jenkins SonarQube configuration
-        ARTIFACTORY = 'JFrog'         // Server ID of JFrog Artifactory in Jenkins
-        S3_BUCKET = 'cicd-s3-bucket-code-deploy' // Your actual S3 bucket name
+        SONARQUBE = 'SonarQube'       // Jenkins SonarQube config name
+        ARTIFACTORY = 'JFrog'         // Jenkins Artifactory server ID
+        S3_BUCKET = 'cicd-s3-bucket-code-deploy'
         S3_KEY = 'spring-boot-hello-world.zip'
-        AWS_REGION = 'ca-central-1'   // AWS region
+        AWS_REGION = 'ca-central-1'
     }
 
     stages {
@@ -22,15 +22,14 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv("${SONARQUBE}") {
-            withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                sh 'mvn clean verify sonar:sonar -Dsonar.token=$SONAR_TOKEN'
+            steps {
+                withSonarQubeEnv("${SONARQUBE}") {
+                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                        sh 'mvn clean verify sonar:sonar -Dsonar.token=$SONAR_TOKEN'
+                    }
+                }
             }
         }
-    }
-}
-
 
         stage('Build') {
             steps {
@@ -39,20 +38,19 @@ pipeline {
         }
 
         stage('Publish to Artifactory') {
-    steps {
-        script {
-            def server = Artifactory.server 'JFrog'
-            def uploadSpec = """{
-              "files": [{
-                "pattern": "target/*.jar",
-                "target": "libs-release-local/springboot-hello-world/"
-              }]
-            }"""
-            server.upload(uploadSpec)
+            steps {
+                script {
+                    def server = Artifactory.server("${ARTIFACTORY}")
+                    def uploadSpec = """{
+                        "files": [{
+                            "pattern": "target/*.jar",
+                            "target": "libs-release-local/springboot-hello-world/"
+                        }]
+                    }"""
+                    server.upload(uploadSpec)
+                }
+            }
         }
-    }
-}
-
 
         stage('Package for CodeDeploy') {
             steps {
@@ -61,14 +59,14 @@ pipeline {
                     cp target/*.jar codedeploy/
                     cp -r scripts codedeploy/
                     cp appspec.yml codedeploy/
-                    cd codedeploy && zip -r ../${S3_KEY} .
+                    cd codedeploy && zip -r ../$S3_KEY .
                 '''
             }
         }
 
         stage('Upload to S3') {
             steps {
-                sh 'aws s3 cp ${S3_KEY} s3://${S3_BUCKET}/${S3_KEY} --region ${AWS_REGION}'
+                sh 'aws s3 cp $S3_KEY s3://$S3_BUCKET/$S3_KEY --region $AWS_REGION'
             }
         }
 
@@ -78,8 +76,8 @@ pipeline {
                     aws deploy create-deployment \
                     --application-name MyApp \
                     --deployment-group-name MyDeploymentGroup \
-                    --s3-location bucket=${S3_BUCKET},bundleType=zip,key=${S3_KEY} \
-                    --region ${AWS_REGION}
+                    --s3-location bucket=$S3_BUCKET,bundleType=zip,key=$S3_KEY \
+                    --region $AWS_REGION
                 '''
             }
         }
