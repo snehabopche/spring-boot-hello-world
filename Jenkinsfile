@@ -56,9 +56,10 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p codedeploy
-                    cp target/*.jar codedeploy/
+                    cp target/*.jar codedeploy/app.jar
                     cp -r scripts codedeploy/
                     cp appspec.yml codedeploy/
+                    chmod +x codedeploy/scripts/*.sh
                     cd codedeploy && zip -r ../$S3_KEY .
                 '''
             }
