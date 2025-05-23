@@ -1,22 +1,18 @@
 #!/bin/bash
 
-APP_DIR="/home/ec2-user/app"
+APP_DIR="/opt/app"
 JAR_NAME="app.jar"
 LOG_FILE="$APP_DIR/app.log"
 
 echo "[Start Script] Starting application..."
 
-# Ensure the app directory exists
-if [ ! -d "$APP_DIR" ]; then
-  echo "[Start Script] Creating application directory..."
-  mkdir -p "$APP_DIR"
-fi
+# Create directory if it doesn't exist
+mkdir -p "$APP_DIR"
 
-# Set correct ownership and permissions
-chown ec2-user:ec2-user "$APP_DIR"
+# Ensure permissions
 chmod 755 "$APP_DIR"
 
-# Ensure log file is writable
+# Create or reset log file
 touch "$LOG_FILE"
 chmod 666 "$LOG_FILE"
 
