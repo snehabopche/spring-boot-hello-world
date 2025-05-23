@@ -2,21 +2,24 @@
 
 APP_DIR="/opt/app"
 JAR_NAME="app.jar"
-LOG_FILE="$APP_DIR/app.log"
+LOG_FILE="/opt/app/app.log"
 
 echo "[Start Script] Starting application..."
 
-# Create directory if it doesn't exist
-mkdir -p "$APP_DIR"
+# Ensure app directory exists
+sudo mkdir -p "$APP_DIR"
+sudo chmod 777 "$APP_DIR"
 
-# Ensure permissions
-chmod 755 "$APP_DIR"
+# Copy jar from deployment archive to /opt/app
+cp $(find /opt/codedeploy-agent/deployment-root/ -type f -name "$JAR_NAME" | head -1) "$APP_DIR"
 
-# Create or reset log file
+# Create a new log file with proper permissions
 touch "$LOG_FILE"
-chmod 666 "$LOG_FILE"
+chmod 777 "$LOG_FILE"
 
 cd "$APP_DIR"
+
+# Start application in background and redirect output to log
 nohup java -jar "$JAR_NAME" > "$LOG_FILE" 2>&1 &
 
 sleep 5
