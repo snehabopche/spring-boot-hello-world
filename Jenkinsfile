@@ -36,6 +36,17 @@ pipeline {
                 sh 'mvn package -DskipTests'
             }
         }
+        
+        stage('Prepare Deployment Artifact') {
+            steps {
+                sh 'cp target/spring-boot-2-hello-world-1.0.2-SNAPSHOT.jar app.jar'
+                sh 'git config --global user.email "snehabopche1@gmail.com"'
+                sh 'git config --global user.name "snehabopche"'
+                sh 'git add app.jar'
+                sh 'git commit -m "Add built jar for deployment" || echo "No changes to commit"'
+                sh 'git push origin main'
+            }
+        }
 
         stage('Publish to Artifactory') {
             steps {
