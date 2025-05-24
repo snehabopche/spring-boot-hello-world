@@ -7,69 +7,44 @@ pipeline {
     }
 
     environment {
-        SONARQUBE = 'SonarQube'       // Jenkins SonarQube config name
-        ARTIFACTORY = 'JFrog'         // Jenkins Artifactory server ID
+        ARTIFACTORY = 'JFrog'
         S3_BUCKET = 'cicd-s3-bucket-code-deploy'
         S3_KEY = 'spring-boot-hello-world.zip'
         AWS_REGION = 'ca-central-1'
     }
 
     stages {
-        stage('Clone') {
+        stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/snehabopche/spring-boot-hello-world.git'
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv("${SONARQUBE}") {
-                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                        sh 'mvn clean verify sonar:sonar -Dsonar.token=$SONAR_TOKEN'
-                    }
-                }
-            }
-        }
-
         stage('Build') {
             steps {
-                sh 'mvn package -DskipTests'
-            }
-        }
-        
-        stage('Prepare Deployment Artifact') {
-            steps {
-                sh 'cp target/spring-boot-2-hello-world-1.0.2-SNAPSHOT.jar app.jar'
-                sh 'git config --global user.email "snehabopche1@gmail.com"'
-                sh 'git config --global user.name "snehabopche"'
-                sh 'git add app.jar'
-                sh 'git commit -m "Add built jar for deployment" || echo "No changes to commit"'
-                sh 'git push origin main'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Publish to Artifactory') {
+        stage('Upload to Artifactory') {
             steps {
-                script {
-                    def server = Artifactory.server("${ARTIFACTORY}")
-                    def uploadSpec = """{
-                        "files": [{
-                            "pattern": "target/*.jar",
-                            "target": "libs-release-local/springboot-hello-world/"
-                        }]
-                    }"""
-                    server.upload(uploadSpec)
-                }
+                sh 'jfrog rt u "target/*.jar" libs-release-local/springboot-hello-world/'
+            }
+        }
+
+        stage('Download from Artifactory') {
+            steps {
+                sh 'jfrog rt dl "libs-release-local/springboot-hello-world/*.jar" --flat'
             }
         }
 
         stage('Package for CodeDeploy') {
             steps {
                 sh '''
-                    mkdir -p codedeploy
-                    cp target/*.jar codedeploy/app.jar
-                    cp -r scripts codedeploy/
+                    mkdir -p codedeploy/scripts
+                    cp *.jar codedeploy/app.jar
                     cp appspec.yml codedeploy/
+                    cp scripts/*.sh codedeploy/scripts/
                     chmod +x codedeploy/scripts/*.sh
                     cd codedeploy && zip -r ../$S3_KEY .
                 '''
@@ -86,15 +61,15 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2 with CodeDeploy') {
+        stage('Deploy with CodeDeploy') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS_Credentials']]) {
                     sh '''
                         aws deploy create-deployment \
-                        --application-name MyApp \
-                        --deployment-group-name MyDeploymentGroup \
-                        --s3-location bucket=$S3_BUCKET,bundleType=zip,key=$S3_KEY \
-                        --region $AWS_REGION
+                          --application-name MyApp \
+                          --deployment-group-name MyDeploymentGroup \
+                          --s3-location bucket=$S3_BUCKET,bundleType=zip,key=$S3_KEY \
+                          --region $AWS_REGION
                     '''
                 }
             }

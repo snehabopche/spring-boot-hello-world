@@ -1,8 +1,10 @@
 version: 0.0
 os: linux
 files:
-  - source: /
+  - source: app.jar
     destination: /opt/app
+  - source: scripts/
+    destination: /opt/app/scripts/
 hooks:
   ApplicationStop:
     - location: scripts/stop.sh
